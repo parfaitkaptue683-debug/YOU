@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YOU </title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <div class="header-left">
+                    <h2><i class="fas fa-wallet"></i> BudgetPro</h2>
+                </div>
+                <div class="header-functions">
+                    <button class="header-btn" onclick="showAddExpenseModal()" title="Ajouter une dépense">
+                        <i class="fas fa-plus"></i> Dépense
+                    </button>
+                    <button class="header-btn secondary" onclick="showAddIncomeModal()" title="Ajouter un revenu">
+                        <i class="fas fa-money-bill-wave"></i> Revenu
+                    </button>
+                    <button class="header-btn warning" onclick="showBudgetSettingsModal()" title="Paramètres">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    <button class="header-btn danger" onclick="exportBudgetData()" title="Exporter les données">
+                        <i class="fas fa-download"></i>
+                    </button>
+                </div>
+                <div class="user-info">
+                    <div class="user-avatar">H</div>
+                    <div>
+                        <div>Harold Pharel</div>
+                        <small>haroldpharel@gmail.com</small>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Cards -->
+            <div class="cards-container">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Budget Loisirs</div>
+                        <div class="card-icon warning">
+                            <i class="fas fa-film"></i>
+                        </div>
+                    </div>
+                    <div class="card-value">€ <span id="loisirs-actuels">0</span> / <span id="loisirs-prevus">0</span></div>
+                    <div class="card-progress">
+                        <div class="card-progress-bar" id="loisirs-progress" style="width: 0%; background-color: var(--warning);"></div>
+                    </div>
+                    <div class="card-footer">
+                        <span id="loisirs-percent">0%</span>
+                        <span id="loisirs-status">Utilisé</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Budget Essentiels</div>
+                        <div class="card-icon danger">
+                            <i class="fas fa-home"></i>
+                        </div>
+                    </div>
+                    <div class="card-value">€ <span id="essentiels-actuels">0</span> / <span id="essentiels-prevus">0</span></div>
+                    <div class="card-progress">
+                        <div class="card-progress-bar" id="essentiels-progress" style="width: 0%; background-color: var(--danger);"></div>
+                    </div>
+                    <div class="card-footer">
+                        <span id="essentiels-percent">0%</span>
+                        <span id="essentiels-status">Utilisé</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Épargne</div>
+                        <div class="card-icon success">
+                            <i class="fas fa-piggy-bank"></i>
+                        </div>
+                    </div>
+                    <div class="card-value">€ <span id="epargne-actuelle">0</span> / <span id="epargne-prevue">0</span></div>
+                    <div class="card-progress">
+                        <div class="card-progress-bar" id="epargne-progress" style="width: 0%; background-color: var(--success);"></div>
+                    </div>
+                    <div class="card-footer">
+                        <span id="epargne-percent">0%</span>
+                        <span id="epargne-status">Atteint</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Revenu Total</div>
+                        <div class="card-icon primary">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                    </div>
+                    <div class="card-value">€ <span id="revenu-total">0</span></div>
+                    <div class="card-progress">
+                        <div class="card-progress-bar" style="width: 100%; background-color: var(--primary);"></div>
+                    </div>
+                    <div class="card-footer">
+                        <span>Ce mois</span>
+                        <span id="jours-restants">0 jours restants</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="charts-container">
+                <div class="chart-card">
+                    <h3>Répartition des Dépenses</h3>
+                    <canvas id="expensesChart" height="180"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>Prévisions Mensuelles</h3>
+                    <canvas id="forecastChart" height="180"></canvas>
+                </div>
+            </div>
+
+            <!-- Notifications -->
+            <div class="notifications-container">
+                <h3>Alertes Récentes</h3>
+                <div id="notifications-list">
+                    <!-- Les notifications seront ajoutées dynamiquement -->
+                    <div class="notification warning">
+                        <div class="notification-icon">⚠️</div>
+                        <div class="notification-info">
+                            <h4>75% de votre budget Loisirs atteint</h4>
+                            <p>C'est le moment de ralentir un peu pour éviter le dépassement.</p>
+                            <div class="notification-time">Il y a 2 heures</div>
+                        </div>
+                    </div>
+                    
+                    <div class="notification success">
+                        <div class="notification-icon">✅</div>
+                        <div class="notification-info">
+                            <h4>50% de votre budget Loisirs utilisé</h4>
+                            <p>Super ! Continuez à garder un œil sur vos prochaines dépenses.</p>
+                            <div class="notification-time">Hier à 14:30</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chargement du fichier JavaScript externe -->
+    <script src="budget-app.js"></script>
+</body>
+</html>

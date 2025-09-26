@@ -1,0 +1,17 @@
+{
+  "name": "desktop",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+  "start": "electron .",
+  "pack": "electron-packager . budget-app --platform=win32 --arch=x64 --out=dist"
+},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^38.1.2"
+  }
+}
