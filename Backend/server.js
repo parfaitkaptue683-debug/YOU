@@ -5,7 +5,7 @@ const client = new Client({
   user: "postgres",       // ton utilisateur
   host: "localhost",      // car c'est en local
   database: "you",  // ta base créée
-  password: "chooseyourhistory",       // ton mot de passe défini à l’installation
+  password: "chooseyourhistory",       // ton mot de passe défini à l'installation
   port: 5432              // port par défaut
 });
 

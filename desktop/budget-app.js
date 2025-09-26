@@ -1,31 +1,166 @@
 /**
  * BudgetPro - Application de Gestion de Budget Personnel
- * Version 2.0 - Interface Moderne avec Animations
+ * Version 3.0 - Interface Moderne avec Backend Java
  */
+
+// Configuration de l'API
+const API_CONFIG = {
+    baseUrl: 'http://localhost:8080',
+    endpoints: {
+        budgets: '/api/budgets',
+        expenses: '/api/expenses'
+    }
+};
+
+// Fonctions API pour communiquer avec le backend
+class BudgetAPI {
+    
+    /**
+     * Effectue une requête HTTP vers l'API
+     */
+    static async request(endpoint, method = 'GET', data = null) {
+        const url = `${API_CONFIG.baseUrl}${endpoint}`;
+        const options = {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        };
+        
+        if (data) {
+            options.body = JSON.stringify(data);
+        }
+        
+        try {
+            const response = await fetch(url, options);
+            const result = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(result.message || `Erreur HTTP ${response.status}`);
+            }
+            
+            return result;
+        } catch (error) {
+            console.error('Erreur API:', error);
+            throw error;
+        }
+    }
+    
+    // === BUDGETS ===
+    
+    /**
+     * Création d'un nouveau budget mensuel
+     */
+    static async createBudget(userId, totalIncome, loisirsBudget, essentielsBudget, epargneBudget) {
+        return this.request(API_CONFIG.endpoints.budgets, 'POST', {
+            userId,
+            totalIncome: totalIncome.toString(),
+            loisirsBudget: loisirsBudget.toString(),
+            essentielsBudget: essentielsBudget.toString(),
+            epargneBudget: epargneBudget.toString()
+        });
+    }
+    
+    /**
+     * Récupération du budget actuel d'un utilisateur
+     */
+    static async getCurrentBudget(userId) {
+        return this.request(`${API_CONFIG.endpoints.budgets}/current/${userId}`);
+    }
+    
+    /**
+     * Mise à jour d'un budget existant
+     */
+    static async updateBudget(budgetId, budgetData) {
+        return this.request(`${API_CONFIG.endpoints.budgets}/${budgetId}`, 'PUT', budgetData);
+    }
+    
+    /**
+     * Ajout d'une dépense à un budget
+     */
+    static async addExpenseToBudget(budgetId, category, amount) {
+        return this.request(`${API_CONFIG.endpoints.budgets}/${budgetId}/expenses`, 'POST', {
+            category,
+            amount: amount.toString()
+        });
+    }
+    
+    // === DÉPENSES ===
+    
+    /**
+     * Création d'une nouvelle dépense
+     */
+    static async createExpense(userId, budgetId, category, amount, description, paymentMethod = null, location = null, notes = null) {
+        return this.request(API_CONFIG.endpoints.expenses, 'POST', {
+            userId,
+            budgetId,
+            category,
+            amount: amount.toString(),
+            description,
+            paymentMethod,
+            location,
+            notes
+        });
+    }
+    
+    /**
+     * Récupération des dépenses d'un utilisateur
+     */
+    static async getUserExpenses(userId) {
+        return this.request(`${API_CONFIG.endpoints.expenses}/user/${userId}`);
+    }
+    
+    /**
+     * Récupération des dépenses d'un budget
+     */
+    static async getBudgetExpenses(budgetId) {
+        return this.request(`${API_CONFIG.endpoints.expenses}/budget/${budgetId}`);
+    }
+    
+    /**
+     * Récupération du résumé des dépenses
+     */
+    static async getExpenseSummary(userId) {
+        return this.request(`${API_CONFIG.endpoints.expenses}/summary/${userId}`);
+    }
+    
+    /**
+     * Recherche de dépenses par description
+     */
+    static async searchExpenses(query) {
+        return this.request(`${API_CONFIG.endpoints.expenses}/search?q=${encodeURIComponent(query)}`);
+    }
+}
 
 class BudgetApp {
     constructor() {
+        // Données utilisateur et session
+        this.currentUser = null;
+        this.currentBudget = null;
+        this.budgetId = null;
+        
+        // Données par défaut (seront remplacées par les données du backend)
         this.budgetData = {
             loisirs: {
-                prevu: 200,
-                actuel: 150,
+                prevu: 0,
+                actuel: 0,
                 pourcentage: 0,
                 historique: []
             },
             essentiels: {
-                prevu: 1200,
-                actuel: 1100,
+                prevu: 0,
+                actuel: 0,
                 pourcentage: 0,
                 historique: []
             },
             epargne: {
-                prevu: 300,
-                actuel: 200,
+                prevu: 0,
+                actuel: 0,
                 pourcentage: 0,
                 historique: []
             },
-            revenu: 2000,
-            joursRestants: 12,
+            revenu: 0,
+            joursRestants: 30,
             notifications: []
         };
 
@@ -33,7 +168,15 @@ class BudgetApp {
         this.init();
     }
 
-    init() {
+    async init() {
+        try {
+            // Charger les données depuis le backend
+            await this.loadDataFromBackend();
+        } catch (error) {
+            console.warn('Impossible de charger les données du backend:', error);
+            // Continuer avec les données par défaut
+        }
+        
         this.calculatePercentages();
         this.updateUI();
         this.initializeCharts();
@@ -51,6 +194,176 @@ class BudgetApp {
         this.budgetData.loisirs.pourcentage = Math.min(100, (this.budgetData.loisirs.actuel / this.budgetData.loisirs.prevu) * 100);
         this.budgetData.essentiels.pourcentage = Math.min(100, (this.budgetData.essentiels.actuel / this.budgetData.essentiels.prevu) * 100);
         this.budgetData.epargne.pourcentage = Math.min(100, (this.budgetData.epargne.actuel / this.budgetData.epargne.prevu) * 100);
+    }
+
+    // === MÉTHODES DE CHARGEMENT DES DONNÉES ===
+
+    /**
+     * Charge les données depuis le backend
+     */
+    async loadDataFromBackend() {
+        // Utiliser l'utilisateur connecté ou un utilisateur par défaut
+        const userId = window.getCurrentUserId() || 'default-user-id';
+        
+        try {
+            // Charger le budget actuel
+            await this.loadCurrentBudget(userId);
+            
+            // Si aucun budget n'existe, créer un budget initial
+            if (!this.budgetId) {
+                console.log('Aucun budget trouvé, création d\'un budget initial...');
+                await this.createInitialBudget();
+            }
+            
+            // Charger les dépenses
+            await this.loadExpenses(userId);
+            
+            console.log('✅ Données chargées depuis le backend');
+        } catch (error) {
+            console.warn('⚠️ Utilisation des données par défaut:', error.message);
+        }
+    }
+
+    /**
+     * Charge le budget actuel depuis le backend
+     */
+    async loadCurrentBudget(userId) {
+        try {
+            const response = await BudgetAPI.getCurrentBudget(userId);
+            
+            if (response.success && response.data) {
+                const budget = response.data;
+                this.currentBudget = budget;
+                this.budgetId = budget.id;
+                
+                // Mettre à jour les données locales
+                this.budgetData.revenu = parseFloat(budget.totalIncome);
+                this.budgetData.loisirs.prevu = parseFloat(budget.loisirsBudget);
+                this.budgetData.essentiels.prevu = parseFloat(budget.essentielsBudget);
+                this.budgetData.epargne.prevu = parseFloat(budget.epargneBudget);
+                this.budgetData.loisirs.actuel = parseFloat(budget.loisirsSpent);
+                this.budgetData.essentiels.actuel = parseFloat(budget.essentielsSpent);
+                this.budgetData.epargne.actuel = parseFloat(budget.epargneSpent);
+                
+                console.log('✅ Budget actuel chargé:', budget);
+            }
+        } catch (error) {
+            console.warn('Budget actuel non trouvé, utilisation des valeurs par défaut');
+        }
+    }
+
+    /**
+     * Charge les dépenses depuis le backend
+     */
+    async loadExpenses(userId) {
+        try {
+            const response = await BudgetAPI.getUserExpenses(userId);
+            
+            if (response.success && response.data.expenses) {
+                const expenses = response.data.expenses;
+                
+                // Réinitialiser les montants
+                this.budgetData.loisirs.actuel = 0;
+                this.budgetData.essentiels.actuel = 0;
+                this.budgetData.epargne.actuel = 0;
+                
+                // Calculer les totaux par catégorie
+                expenses.forEach(expense => {
+                    const amount = parseFloat(expense.amount);
+                    const category = expense.category.toLowerCase();
+                    
+                    if (category === 'loisirs') {
+                        this.budgetData.loisirs.actuel += amount;
+                    } else if (category === 'essentiels') {
+                        this.budgetData.essentiels.actuel += amount;
+                    } else if (category === 'epargne') {
+                        this.budgetData.epargne.actuel += amount;
+                    }
+                });
+                
+                console.log('✅ Dépenses chargées:', expenses.length, 'dépenses');
+            }
+        } catch (error) {
+            console.warn('Dépenses non trouvées, utilisation des valeurs par défaut');
+        }
+    }
+
+    /**
+     * Sauvegarde le budget actuel vers le backend
+     */
+    async saveBudgetToBackend() {
+        if (!this.currentUser) {
+            console.warn('Aucun utilisateur connecté pour sauvegarder le budget');
+            return;
+        }
+
+        try {
+            const budgetData = {
+                totalIncome: this.budgetData.revenu.toString(),
+                loisirsBudget: this.budgetData.loisirs.prevu.toString(),
+                essentielsBudget: this.budgetData.essentiels.prevu.toString(),
+                epargneBudget: this.budgetData.epargne.prevu.toString()
+            };
+
+            if (this.budgetId) {
+                // Mise à jour du budget existant
+                await BudgetAPI.updateBudget(this.budgetId, budgetData);
+                console.log('✅ Budget mis à jour dans le backend');
+            } else {
+                // Création d'un nouveau budget
+                const response = await BudgetAPI.createBudget(
+                    this.currentUser.id,
+                    this.budgetData.revenu,
+                    this.budgetData.loisirs.prevu,
+                    this.budgetData.essentiels.prevu,
+                    this.budgetData.epargne.prevu
+                );
+                
+                if (response.success && response.data) {
+                    this.budgetId = response.data.id;
+                    this.currentBudget = response.data;
+                    console.log('✅ Nouveau budget créé dans le backend');
+                }
+            }
+        } catch (error) {
+            console.error('❌ Erreur lors de la sauvegarde du budget:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Crée un budget initial avec des valeurs par défaut
+     */
+    async createInitialBudget() {
+        const userId = window.getCurrentUserId() || 'default-user-id';
+        
+        try {
+            // Créer un budget avec des valeurs par défaut
+            const response = await BudgetAPI.createBudget(
+                userId,
+                2000, // revenu par défaut
+                200,  // loisirs par défaut
+                1200, // essentiels par défaut
+                300   // épargne par défaut
+            );
+            
+            if (response.success && response.data) {
+                this.budgetId = response.data.id;
+                this.currentBudget = response.data;
+                
+                // Mettre à jour les données locales
+                this.budgetData.revenu = 2000;
+                this.budgetData.loisirs.prevu = 200;
+                this.budgetData.essentiels.prevu = 1200;
+                this.budgetData.epargne.prevu = 300;
+                
+                console.log('✅ Budget initial créé avec succès');
+                return true;
+            }
+        } catch (error) {
+            console.error('❌ Erreur lors de la création du budget initial:', error);
+            return false;
+        }
     }
 
     updateUI() {
@@ -209,7 +522,7 @@ class BudgetApp {
                 animation: {
                     animateRotate: true,
                     animateScale: true,
-                    duration: 1500
+                    duration: 1500,
                 }
             }
         });
@@ -543,9 +856,14 @@ class BudgetApp {
         return null;
     }
 
-    // Méthode pour ajouter une dépense
-    addExpense(category, amount, description = '') {
-        if (this.budgetData[category]) {
+    // Méthode pour ajouter une dépense (avec backend)
+    async addExpense(category, amount, description = '') {
+        if (!this.budgetData[category]) {
+            console.error('Catégorie invalide:', category);
+            return false;
+        }
+
+        try {
             // Vérifier si l'ajout de cette dépense dépassera le budget
             const nouveauTotal = this.budgetData[category].actuel + amount;
             if (nouveauTotal > this.budgetData[category].prevu) {
@@ -554,24 +872,59 @@ class BudgetApp {
                     `Cette dépense de €${amount} dépassera votre budget ${category} de €${depassement}.`);
             }
 
-            this.budgetData[category].actuel += amount;
-            this.budgetData[category].historique.push({
-                amount,
-                description,
-                date: new Date().toISOString(),
-                type: 'expense'
-            });
-            
-            this.calculatePercentages();
-            this.updateUI();
-            this.updateCharts();
-            
-            // Vérifier les alertes
-            this.checkAlerts(category);
-            
-            return true;
+            // Créer la dépense dans le backend
+            if (this.budgetId) {
+                const response = await BudgetAPI.createExpense(
+                    this.currentUser?.id || 'default-user-id',
+                    this.budgetId,
+                    category,
+                    amount,
+                    description
+                );
+
+                if (response.success) {
+                    // Mettre à jour les données locales
+                    this.budgetData[category].actuel += amount;
+                    this.budgetData[category].historique.push({
+                        amount,
+                        description,
+                        date: new Date().toISOString(),
+                        type: 'expense'
+                    });
+                    
+                    this.calculatePercentages();
+                    this.updateUI();
+                    this.updateCharts();
+                    
+                    // Vérifier les alertes
+                    this.checkAlerts(category);
+                    
+                    console.log('✅ Dépense ajoutée avec succès via le backend');
+                    return true;
+                }
+            } else {
+                console.warn('Aucun budget ID disponible, ajout local uniquement');
+                // Fallback: ajout local uniquement
+                this.budgetData[category].actuel += amount;
+                this.budgetData[category].historique.push({
+                    amount,
+                    description,
+                    date: new Date().toISOString(),
+                    type: 'expense'
+                });
+                
+                this.calculatePercentages();
+                this.updateUI();
+                this.updateCharts();
+                this.checkAlerts(category);
+                return true;
+            }
+        } catch (error) {
+            console.error('❌ Erreur lors de l\'ajout de la dépense:', error);
+            this.addNotification('danger', 'Erreur', 
+                `Impossible d'ajouter la dépense: ${error.message}`);
+            return false;
         }
-        return false;
     }
 
     checkAlerts(category) {
@@ -633,9 +986,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Fonctions globales pour les interactions
-function addExpense(category, amount, description) {
+async function addExpense(category, amount, description) {
     if (window.budgetApp) {
-        return window.budgetApp.addExpense(category, amount, description);
+        return await window.budgetApp.addExpense(category, amount, description);
     }
     return false;
 }
@@ -699,7 +1052,7 @@ function showAddExpenseModal() {
     document.body.appendChild(modal);
 
     // Gestion du formulaire
-    modal.querySelector('#addExpenseForm').addEventListener('submit', (e) => {
+    modal.querySelector('#addExpenseForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const category = document.getElementById('expenseCategory').value;
         const amount = parseFloat(document.getElementById('expenseAmount').value);
@@ -717,7 +1070,8 @@ function showAddExpenseModal() {
             }
             
             // Si tout est OK, procéder à l'ajout
-            if (window.budgetApp.addExpense(category, amount, description)) {
+            const success = await window.budgetApp.addExpense(category, amount, description);
+            if (success) {
                 closeModal(modal.querySelector('.modal-close'));
                 showSuccessMessage('Dépense ajoutée avec succès !');
             } else {

@@ -31,11 +31,14 @@
                     </button>
                 </div>
                 <div class="user-info">
-                    <div class="user-avatar">H</div>
+                    <div class="user-avatar" id="userAvatar">U</div>
                     <div>
-                        <div>Harold Pharel</div>
-                        <small>haroldpharel@gmail.com</small>
+                        <div id="userName">Utilisateur</div>
+                        <small id="userEmail">email@example.com</small>
                     </div>
+                    <button class="logout-btn" onclick="logoutUser()" title="Se déconnecter">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
                 </div>
             </div>
 
@@ -150,7 +153,30 @@
         </div>
     </div>
 
-    <!-- Chargement du fichier JavaScript externe -->
+    <!-- Chargement des fichiers JavaScript -->
+    <script src="auth.js"></script>
     <script src="budget-app.js"></script>
+    <script>
+        // Vérifier l'authentification au chargement de la page
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!window.isUserLoggedIn()) {
+                // Rediriger vers la page d'authentification si l'utilisateur n'est pas connecté
+                window.location.href = 'auth.html';
+            } else {
+                // Mettre à jour les informations utilisateur
+                updateUserInfo();
+            }
+        });
+
+        // Mettre à jour les informations utilisateur dans l'interface
+        function updateUserInfo() {
+            const user = window.getCurrentUser();
+            if (user) {
+                document.getElementById('userName').textContent = user.name;
+                document.getElementById('userEmail').textContent = user.email;
+                document.getElementById('userAvatar').textContent = user.name.charAt(0).toUpperCase();
+            }
+        }
+    </script>
 </body>
 </html>
