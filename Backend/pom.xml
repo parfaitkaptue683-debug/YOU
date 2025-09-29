@@ -54,6 +54,13 @@
                 <version>42.7.1</version>
             </dependency>
 
+            <!-- BCrypt pour le hachage des mots de passe -->
+            <dependency>
+                <groupId>org.mindrot</groupId>
+                <artifactId>jbcrypt</artifactId>
+                <version>0.4</version>
+            </dependency>
+
         <!-- JSON Processing -->
         <dependency>
             <groupId>io.vertx</groupId>

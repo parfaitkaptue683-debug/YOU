@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.mindrot.jbcrypt.BCrypt;
 
 /**
  * UserService - Couche de logique métier pour les utilisateurs
@@ -46,8 +47,9 @@ public class UserService {
                             throw new IllegalArgumentException("Un utilisateur avec cet email existe déjà");
                         }
                         
-                        // Créer le nouvel utilisateur
-                        User newUser = new User(email, name, password);
+                        // Créer le nouvel utilisateur avec mot de passe hashé
+                        String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt(12));
+                        User newUser = new User(email, name, hashedPassword);
                         logger.info("👤 Nouvel utilisateur créé: {} ({})", newUser.getName(), newUser.getId());
                         return userRepository.save(newUser);
                     })
@@ -78,14 +80,22 @@ public class UserService {
                     throw new IllegalArgumentException("Le mot de passe est requis");
                 }
                 
-                return userRepository.findByEmailAndPassword(email, password)
+                return userRepository.findByEmail(email)
                     .thenApply(userOpt -> {
                         if (userOpt.isPresent()) {
-                            logger.info("✅ Authentification réussie pour: {}", email);
+                            User user = userOpt.get();
+                            // Vérifier le mot de passe avec BCrypt
+                            if (BCrypt.checkpw(password, user.getPassword())) {
+                                logger.info("✅ Authentification réussie pour: {}", email);
+                                return Optional.of(user);
+                            } else {
+                                logger.warn("❌ Mot de passe incorrect pour: {}", email);
+                                return Optional.<User>empty();
+                            }
                         } else {
-                            logger.warn("❌ Échec d'authentification pour: {}", email);
+                            logger.warn("❌ Utilisateur non trouvé: {}", email);
+                            return Optional.<User>empty();
                         }
-                        return userOpt;
                     })
                     .join();
             } catch (Exception e) {
@@ -219,7 +229,7 @@ public class UserService {
                                         user.setName(name);
                                     }
                                     if (password != null && !password.trim().isEmpty()) {
-                                        user.setPassword(password);
+                                        user.setPassword(BCrypt.hashpw(password, BCrypt.gensalt(12)));
                                     }
                                     
                                     user.touch(); // Mettre à jour la date de modification
@@ -233,7 +243,7 @@ public class UserService {
                                 user.setName(name);
                             }
                             if (password != null && !password.trim().isEmpty()) {
-                                user.setPassword(password);
+                                user.setPassword(BCrypt.hashpw(password, BCrypt.gensalt(12)));
                             }
                             
                             user.touch();

@@ -94,19 +94,19 @@ public class User {
         this.updatedAt = LocalDateTime.now();
     }
 
-    /**
-     * Convertit l'objet User en JsonObject.
-     * @return JsonObject représentant l'utilisateur.
-     */
-    public JsonObject toJson() {
-        return new JsonObject()
-            .put("id", id)
-            .put("email", email)
-            .put("name", name)
-            .put("password", password) // Inclure le mot de passe pour les opérations internes si nécessaire
-            .put("createdAt", createdAt.toString())
-            .put("updatedAt", updatedAt.toString());
-    }
+        /**
+         * Convertit l'objet User en JsonObject.
+         * @return JsonObject représentant l'utilisateur.
+         */
+        public JsonObject toJson() {
+            return new JsonObject()
+                .put("id", id)
+                .put("email", email)
+                .put("name", name)
+                .put("password", password) // Inclure le mot de passe hashé pour les opérations internes
+                .put("createdAt", createdAt.toString())
+                .put("updatedAt", updatedAt.toString());
+        }
 
     /**
      * Convertit l'objet User en JsonObject sans le mot de passe (pour les réponses API publiques).

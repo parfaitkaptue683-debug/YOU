@@ -27,7 +27,7 @@ public class MainVerticle extends AbstractVerticle {
             .put("DB_PORT", 5432)
             .put("DB_NAME", "you")
             .put("DB_USER", "postgres")
-            .put("DB_PASSWORD", "chooseyourhistory")
+            .put("DB_PASSWORD", "postgres")
             .put("DB_MAX_POOL_SIZE", 10)
             .put("DB_MIN_POOL_SIZE", 2)
             .put("DB_MAX_WAIT_QUEUE_SIZE", 20);

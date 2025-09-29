@@ -64,27 +64,28 @@ public class BudgetRepository {
      */
     private void insertBudget(Budget budget, CompletableFuture<Budget> future) {
         jdbcPool.preparedQuery("""
-            INSERT INTO budgets (id, user_id, name, description, total_amount, spent_amount, 
-                               remaining_amount, category, start_date, end_date, created_at, updated_at) 
+            INSERT INTO budgets (id, user_id, total_income, loisirs_budget, essentiels_budget, 
+                               epargne_budget, loisirs_spent, essentiels_spent, epargne_spent, 
+                               month_year, created_at, updated_at) 
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             """)
             .execute(Tuple.of(
                 budget.getId(),
                 budget.getUserId(),
-                budget.getName(),
-                budget.getDescription(),
-                budget.getTotalAmount().toString(),
-                budget.getSpentAmount().toString(),
-                budget.getRemainingAmount().toString(),
-                budget.getCategory(),
-                budget.getStartDate(),
-                budget.getEndDate(),
+                budget.getTotalIncome().toString(),
+                budget.getLoisirsBudget().toString(),
+                budget.getEssentielsBudget().toString(),
+                budget.getEpargneBudget().toString(),
+                budget.getLoisirsSpent().toString(),
+                budget.getEssentielsSpent().toString(),
+                budget.getEpargneSpent().toString(),
+                budget.getMonthYear(),
                 budget.getCreatedAt(),
                 budget.getUpdatedAt()
             ))
             .onComplete(result -> {
                 if (result.succeeded()) {
-                    logger.info("✅ Budget inséré: {} ({})", budget.getName(), budget.getId());
+                    logger.info("✅ Budget inséré: {} ({})", budget.getUserId(), budget.getId());
                     future.complete(budget);
                 } else {
                     logger.error("❌ Erreur lors de l'insertion du budget: {}", result.cause().getMessage());
@@ -99,27 +100,27 @@ public class BudgetRepository {
     private void updateBudget(Budget budget, CompletableFuture<Budget> future) {
         jdbcPool.preparedQuery("""
             UPDATE budgets 
-            SET user_id = $2, name = $3, description = $4, total_amount = $5, 
-                spent_amount = $6, remaining_amount = $7, category = $8, 
-                start_date = $9, end_date = $10, updated_at = $11 
+            SET user_id = $2, total_income = $3, loisirs_budget = $4, 
+                essentiels_budget = $5, epargne_budget = $6, loisirs_spent = $7, 
+                essentiels_spent = $8, epargne_spent = $9, month_year = $10, updated_at = $11 
             WHERE id = $1
             """)
             .execute(Tuple.of(
                 budget.getId(),
                 budget.getUserId(),
-                budget.getName(),
-                budget.getDescription(),
-                budget.getTotalAmount().toString(),
-                budget.getSpentAmount().toString(),
-                budget.getRemainingAmount().toString(),
-                budget.getCategory(),
-                budget.getStartDate(),
-                budget.getEndDate(),
+                budget.getTotalIncome().toString(),
+                budget.getLoisirsBudget().toString(),
+                budget.getEssentielsBudget().toString(),
+                budget.getEpargneBudget().toString(),
+                budget.getLoisirsSpent().toString(),
+                budget.getEssentielsSpent().toString(),
+                budget.getEpargneSpent().toString(),
+                budget.getMonthYear(),
                 budget.getUpdatedAt()
             ))
             .onComplete(result -> {
                 if (result.succeeded()) {
-                    logger.info("✅ Budget mis à jour: {} ({})", budget.getName(), budget.getId());
+                    logger.info("✅ Budget mis à jour: {} ({})", budget.getUserId(), budget.getId());
                     future.complete(budget);
                 } else {
                     logger.error("❌ Erreur lors de la mise à jour du budget: {}", result.cause().getMessage());
