@@ -23,6 +23,7 @@ class AuthAPI {
             method: method,
             headers: {
                 'Content-Type': 'application/json',
+                'Accept': 'application/json'
             }
         };
         
@@ -31,16 +32,38 @@ class AuthAPI {
         }
         
         try {
+            console.log(`🔄 Requête API: ${method} ${url}`);
+            
             const response = await fetch(url, options);
-            const result = await response.json();
             
             if (!response.ok) {
-                throw new Error(result.message || `Erreur HTTP ${response.status}`);
+                if (response.status === 0) {
+                    throw new Error('Impossible de se connecter au serveur. Vérifiez que le backend est démarré sur le port 8080.');
+                }
+                
+                let errorMessage;
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.message || `Erreur HTTP ${response.status}`;
+                } catch {
+                    errorMessage = `Erreur HTTP ${response.status}: ${response.statusText}`;
+                }
+                
+                throw new Error(errorMessage);
             }
             
+            const result = await response.json();
+            console.log(`✅ Réponse API reçue:`, result);
             return result;
+            
         } catch (error) {
-            console.error('Erreur Auth API:', error);
+            console.error('❌ Erreur Auth API:', error);
+            
+            // Gestion des erreurs spécifiques
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                throw new Error('Impossible de se connecter au serveur backend. Vérifiez que le serveur est démarré sur http://localhost:8080');
+            }
+            
             throw error;
         }
     }

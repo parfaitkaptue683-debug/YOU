@@ -28,9 +28,22 @@ public class HttpVerticle extends AbstractVerticle {
         
         // Configuration CORS
         router.route().handler(CorsHandler.create("*")
-            .allowedMethods(io.vertx.core.http.HttpMethod.values())
-            .allowedHeaders(java.util.Set.of("*"))
-            .allowCredentials(true));
+            .allowedMethods(java.util.Set.of(
+                io.vertx.core.http.HttpMethod.GET,
+                io.vertx.core.http.HttpMethod.POST,
+                io.vertx.core.http.HttpMethod.PUT,
+                io.vertx.core.http.HttpMethod.DELETE,
+                io.vertx.core.http.HttpMethod.OPTIONS
+            ))
+            .allowedHeaders(java.util.Set.of(
+                "Content-Type",
+                "Authorization",
+                "X-Requested-With",
+                "Accept",
+                "Origin"
+            ))
+            .allowCredentials(true)
+            .maxAgeSeconds(3600));
         
         // Parser le body des requêtes JSON
         router.route().handler(BodyHandler.create());
@@ -46,13 +59,17 @@ public class HttpVerticle extends AbstractVerticle {
         // Démarrer le serveur HTTP
         vertx.createHttpServer()
             .requestHandler(router)
-            .listen(8080)
+            .listen(8080, "0.0.0.0")
             .onSuccess(server -> {
-                logger.info("✅ HttpVerticle démarré sur le port 8080");
-                logger.info("🌐 API disponible sur: http://localhost:8080");
+                logger.info("HttpVerticle demarre sur le port 8080");
+                logger.info("API disponible sur: http://localhost:8080");
+                logger.info("API disponible sur: http://127.0.0.1:8080");
                 startPromise.complete();
             })
-            .onFailure(startPromise::fail);
+            .onFailure(err -> {
+                logger.error("Erreur demarrage HttpVerticle: {}", err.getMessage());
+                startPromise.fail(err);
+            });
     }
     
     /**

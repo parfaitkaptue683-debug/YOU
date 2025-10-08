@@ -235,14 +235,26 @@ public class UserRepository {
     public CompletableFuture<Boolean> existsByEmail(String email) {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         
+        System.out.println("DEBUG: Vérification existence email: " + email);
+        
         jdbcPool.preparedQuery("SELECT COUNT(*) FROM users WHERE email = $1")
             .execute(Tuple.of(email))
             .onComplete(result -> {
                 if (result.succeeded()) {
                     RowSet<Row> rows = result.result();
-                    long count = rows.iterator().next().getLong(0);
-                    future.complete(count > 0);
+                    System.out.println("DEBUG: Nombre de lignes retournées: " + rows.size());
+                    
+                    if (rows.size() > 0) {
+                        Row row = rows.iterator().next();
+                        long count = row.getLong(0);
+                        System.out.println("DEBUG: Count = " + count);
+                        future.complete(count > 0);
+                    } else {
+                        System.out.println("DEBUG: Aucune ligne retournée");
+                        future.complete(false);
+                    }
                 } else {
+                    System.out.println("DEBUG: Erreur dans la requête: " + result.cause().getMessage());
                     future.completeExceptionally(result.cause());
                 }
             });
@@ -262,8 +274,12 @@ public class UserRepository {
             .onComplete(result -> {
                 if (result.succeeded()) {
                     RowSet<Row> rows = result.result();
-                    long count = rows.iterator().next().getLong(0);
-                    future.complete(count);
+                    if (rows.size() > 0) {
+                        long count = rows.iterator().next().getLong(0);
+                        future.complete(count);
+                    } else {
+                        future.complete(0L);
+                    }
                 } else {
                     future.completeExceptionally(result.cause());
                 }

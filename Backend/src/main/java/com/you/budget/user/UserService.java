@@ -34,31 +34,29 @@ public class UserService {
     public CompletableFuture<User> createUser(String email, String name, String password) {
         logger.info("🔧 Création d'un nouvel utilisateur: {}", email);
         
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                // Validation des données
-                validateUserData(email, name, password);
-                
-                // Vérifier si l'utilisateur existe déjà
-                return userRepository.existsByEmail(email)
-                    .thenCompose(exists -> {
-                        if (exists) {
-                            logger.warn("⚠️ Utilisateur avec email {} existe déjà", email);
-                            throw new IllegalArgumentException("Un utilisateur avec cet email existe déjà");
-                        }
-                        
-                        // Créer le nouvel utilisateur avec mot de passe hashé
-                        String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt(12));
-                        User newUser = new User(email, name, hashedPassword);
-                        logger.info("👤 Nouvel utilisateur créé: {} ({})", newUser.getName(), newUser.getId());
-                        return userRepository.save(newUser);
-                    })
-                    .join();
-            } catch (Exception e) {
-                logger.error("❌ Erreur lors de la création de l'utilisateur {}: {}", email, e.getMessage());
-                throw e;
-            }
-        });
+        try {
+            // Validation des données
+            validateUserData(email, name, password);
+            
+            // Vérifier si l'utilisateur existe déjà
+            return userRepository.existsByEmail(email)
+                .thenCompose(exists -> {
+                    if (exists) {
+                        logger.warn("⚠️ Utilisateur avec email {} existe déjà", email);
+                        return CompletableFuture.failedFuture(
+                            new IllegalArgumentException("Un utilisateur avec cet email existe déjà"));
+                    }
+                    
+                    // Créer le nouvel utilisateur avec mot de passe hashé
+                    String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt(12));
+                    User newUser = new User(email, name, hashedPassword);
+                    logger.info("👤 Nouvel utilisateur créé: {} ({})", newUser.getName(), newUser.getId());
+                    return userRepository.save(newUser);
+                });
+        } catch (Exception e) {
+            logger.error("❌ Erreur lors de la création de l'utilisateur {}: {}", email, e.getMessage());
+            return CompletableFuture.failedFuture(e);
+        }
     }
     
     /**
@@ -70,39 +68,36 @@ public class UserService {
     public CompletableFuture<Optional<User>> authenticateUser(String email, String password) {
         logger.info("🔐 Tentative d'authentification pour: {}", email);
         
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                // Validation des paramètres
-                if (email == null || email.trim().isEmpty()) {
-                    throw new IllegalArgumentException("L'email est requis");
-                }
-                if (password == null || password.trim().isEmpty()) {
-                    throw new IllegalArgumentException("Le mot de passe est requis");
-                }
-                
-                return userRepository.findByEmail(email)
-                    .thenApply(userOpt -> {
-                        if (userOpt.isPresent()) {
-                            User user = userOpt.get();
-                            // Vérifier le mot de passe avec BCrypt
-                            if (BCrypt.checkpw(password, user.getPassword())) {
-                                logger.info("✅ Authentification réussie pour: {}", email);
-                                return Optional.of(user);
-                            } else {
-                                logger.warn("❌ Mot de passe incorrect pour: {}", email);
-                                return Optional.<User>empty();
-                            }
+        try {
+            // Validation des paramètres
+            if (email == null || email.trim().isEmpty()) {
+                return CompletableFuture.failedFuture(new IllegalArgumentException("L'email est requis"));
+            }
+            if (password == null || password.trim().isEmpty()) {
+                return CompletableFuture.failedFuture(new IllegalArgumentException("Le mot de passe est requis"));
+            }
+            
+            return userRepository.findByEmail(email)
+                .thenApply(userOpt -> {
+                    if (userOpt.isPresent()) {
+                        User user = userOpt.get();
+                        // Vérifier le mot de passe avec BCrypt
+                        if (BCrypt.checkpw(password, user.getPassword())) {
+                            logger.info("✅ Authentification réussie pour: {}", email);
+                            return Optional.of(user);
                         } else {
-                            logger.warn("❌ Utilisateur non trouvé: {}", email);
+                            logger.warn("❌ Mot de passe incorrect pour: {}", email);
                             return Optional.<User>empty();
                         }
-                    })
-                    .join();
-            } catch (Exception e) {
-                logger.error("❌ Erreur lors de l'authentification de {}: {}", email, e.getMessage());
-                throw e;
-            }
-        });
+                    } else {
+                        logger.warn("❌ Utilisateur non trouvé: {}", email);
+                        return Optional.<User>empty();
+                    }
+                });
+        } catch (Exception e) {
+            logger.error("❌ Erreur lors de l'authentification de {}: {}", email, e.getMessage());
+            return CompletableFuture.failedFuture(e);
+        }
     }
     
     /**
@@ -113,27 +108,24 @@ public class UserService {
     public CompletableFuture<Optional<User>> getUserById(String id) {
         logger.info("🔍 Recherche d'utilisateur par ID: {}", id);
         
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                if (id == null || id.trim().isEmpty()) {
-                    throw new IllegalArgumentException("L'ID est requis");
-                }
-                
-                return userRepository.findById(id)
-                    .thenApply(userOpt -> {
-                        if (userOpt.isPresent()) {
-                            logger.info("✅ Utilisateur trouvé: {} ({})", userOpt.get().getName(), id);
-                        } else {
-                            logger.warn("⚠️ Utilisateur non trouvé: {}", id);
-                        }
-                        return userOpt;
-                    })
-                    .join();
-            } catch (Exception e) {
-                logger.error("❌ Erreur lors de la recherche d'utilisateur {}: {}", id, e.getMessage());
-                throw e;
+        try {
+            if (id == null || id.trim().isEmpty()) {
+                return CompletableFuture.failedFuture(new IllegalArgumentException("L'ID est requis"));
             }
-        });
+            
+            return userRepository.findById(id)
+                .thenApply(userOpt -> {
+                    if (userOpt.isPresent()) {
+                        logger.info("✅ Utilisateur trouvé: {} ({})", userOpt.get().getName(), id);
+                    } else {
+                        logger.warn("⚠️ Utilisateur non trouvé: {}", id);
+                    }
+                    return userOpt;
+                });
+        } catch (Exception e) {
+            logger.error("❌ Erreur lors de la recherche d'utilisateur {}: {}", id, e.getMessage());
+            return CompletableFuture.failedFuture(e);
+        }
     }
     
     /**
@@ -144,27 +136,24 @@ public class UserService {
     public CompletableFuture<Optional<User>> getUserByEmail(String email) {
         logger.info("🔍 Recherche d'utilisateur par email: {}", email);
         
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                if (email == null || email.trim().isEmpty()) {
-                    throw new IllegalArgumentException("L'email est requis");
-                }
-                
-                return userRepository.findByEmail(email)
-                    .thenApply(userOpt -> {
-                        if (userOpt.isPresent()) {
-                            logger.info("✅ Utilisateur trouvé: {} ({})", userOpt.get().getName(), email);
-                        } else {
-                            logger.warn("⚠️ Utilisateur non trouvé: {}", email);
-                        }
-                        return userOpt;
-                    })
-                    .join();
-            } catch (Exception e) {
-                logger.error("❌ Erreur lors de la recherche d'utilisateur {}: {}", email, e.getMessage());
-                throw e;
+        try {
+            if (email == null || email.trim().isEmpty()) {
+                return CompletableFuture.failedFuture(new IllegalArgumentException("L'email est requis"));
             }
-        });
+            
+            return userRepository.findByEmail(email)
+                .thenApply(userOpt -> {
+                    if (userOpt.isPresent()) {
+                        logger.info("✅ Utilisateur trouvé: {} ({})", userOpt.get().getName(), email);
+                    } else {
+                        logger.warn("⚠️ Utilisateur non trouvé: {}", email);
+                    }
+                    return userOpt;
+                });
+        } catch (Exception e) {
+            logger.error("❌ Erreur lors de la recherche d'utilisateur {}: {}", email, e.getMessage());
+            return CompletableFuture.failedFuture(e);
+        }
     }
     
     /**
@@ -196,68 +185,66 @@ public class UserService {
     public CompletableFuture<Optional<User>> updateUser(String id, String email, String name, String password) {
         logger.info("✏️ Mise à jour de l'utilisateur: {}", id);
         
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                if (id == null || id.trim().isEmpty()) {
-                    throw new IllegalArgumentException("L'ID est requis");
-                }
-                
-                return userRepository.findById(id)
-                    .thenCompose(userOpt -> {
-                        if (userOpt.isEmpty()) {
-                            logger.warn("⚠️ Utilisateur non trouvé pour mise à jour: {}", id);
-                            return CompletableFuture.completedFuture(Optional.empty());
-                        }
-                        
-                        User user = userOpt.get();
-                        logger.info("👤 Mise à jour de: {} ({})", user.getName(), user.getEmail());
-                        
-                        // Mettre à jour les champs fournis
-                        if (email != null && !email.trim().isEmpty()) {
-                            // Vérifier si le nouvel email n'est pas déjà utilisé par un autre utilisateur
-                            return userRepository.existsByEmail(email)
-                                .thenCompose(exists -> {
-                                    if (exists && !user.getEmail().equals(email)) {
-                                        logger.warn("⚠️ Email {} déjà utilisé par un autre utilisateur", email);
-                                        throw new IllegalArgumentException("Cet email est déjà utilisé par un autre utilisateur");
-                                    }
-                                    user.setEmail(email);
-                                    return CompletableFuture.completedFuture(null);
-                                })
-                                .thenCompose(v -> {
-                                    if (name != null && !name.trim().isEmpty()) {
-                                        user.setName(name);
-                                    }
-                                    if (password != null && !password.trim().isEmpty()) {
-                                        user.setPassword(BCrypt.hashpw(password, BCrypt.gensalt(12)));
-                                    }
-                                    
-                                    user.touch(); // Mettre à jour la date de modification
-                                    logger.info("✅ Utilisateur mis à jour: {} ({})", user.getName(), user.getEmail());
-                                    return userRepository.save(user);
-                                })
-                                .thenApply(updatedUser -> Optional.of(updatedUser));
-                        } else {
-                            // Pas de changement d'email, mise à jour directe
-                            if (name != null && !name.trim().isEmpty()) {
-                                user.setName(name);
-                            }
-                            if (password != null && !password.trim().isEmpty()) {
-                                user.setPassword(BCrypt.hashpw(password, BCrypt.gensalt(12)));
-                            }
-                            
-                            user.touch();
-                            logger.info("✅ Utilisateur mis à jour: {} ({})", user.getName(), user.getEmail());
-                            return userRepository.save(user)
-                                .thenApply(updatedUser -> Optional.of(updatedUser));
-                        }
-                    })
-                    .join();
-            } catch (Exception e) {
-                logger.error("❌ Erreur lors de la mise à jour de l'utilisateur {}: {}", id, e.getMessage());
-                throw e;
+        try {
+            if (id == null || id.trim().isEmpty()) {
+                return CompletableFuture.failedFuture(new IllegalArgumentException("L'ID est requis"));
             }
-        });
+            
+            return userRepository.findById(id)
+                .thenCompose(userOpt -> {
+                    if (userOpt.isEmpty()) {
+                        logger.warn("⚠️ Utilisateur non trouvé pour mise à jour: {}", id);
+                        return CompletableFuture.completedFuture(Optional.empty());
+                    }
+                    
+                    User user = userOpt.get();
+                    logger.info("👤 Mise à jour de: {} ({})", user.getName(), user.getEmail());
+                    
+                    // Mettre à jour les champs fournis
+                    if (email != null && !email.trim().isEmpty()) {
+                        // Vérifier si le nouvel email n'est pas déjà utilisé par un autre utilisateur
+                        return userRepository.existsByEmail(email)
+                            .thenCompose(exists -> {
+                                if (exists && !user.getEmail().equals(email)) {
+                                    logger.warn("⚠️ Email {} déjà utilisé par un autre utilisateur", email);
+                                    return CompletableFuture.failedFuture(
+                                        new IllegalArgumentException("Cet email est déjà utilisé par un autre utilisateur"));
+                                }
+                                user.setEmail(email);
+                                return CompletableFuture.completedFuture(null);
+                            })
+                            .thenCompose(v -> {
+                                if (name != null && !name.trim().isEmpty()) {
+                                    user.setName(name);
+                                }
+                                if (password != null && !password.trim().isEmpty()) {
+                                    user.setPassword(BCrypt.hashpw(password, BCrypt.gensalt(12)));
+                                }
+                                
+                                user.touch(); // Mettre à jour la date de modification
+                                logger.info("✅ Utilisateur mis à jour: {} ({})", user.getName(), user.getEmail());
+                                return userRepository.save(user);
+                            })
+                            .thenApply(updatedUser -> Optional.of(updatedUser));
+                    } else {
+                        // Pas de changement d'email, mise à jour directe
+                        if (name != null && !name.trim().isEmpty()) {
+                            user.setName(name);
+                        }
+                        if (password != null && !password.trim().isEmpty()) {
+                            user.setPassword(BCrypt.hashpw(password, BCrypt.gensalt(12)));
+                        }
+                        
+                        user.touch();
+                        logger.info("✅ Utilisateur mis à jour: {} ({})", user.getName(), user.getEmail());
+                        return userRepository.save(user)
+                            .thenApply(updatedUser -> Optional.of(updatedUser));
+                    }
+                });
+        } catch (Exception e) {
+            logger.error("❌ Erreur lors de la mise à jour de l'utilisateur {}: {}", id, e.getMessage());
+            return CompletableFuture.failedFuture(e);
+        }
     }
     
     /**
@@ -268,27 +255,24 @@ public class UserService {
     public CompletableFuture<Boolean> deleteUser(String id) {
         logger.info("🗑️ Suppression de l'utilisateur: {}", id);
         
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                if (id == null || id.trim().isEmpty()) {
-                    throw new IllegalArgumentException("L'ID est requis");
-                }
-                
-                return userRepository.deleteById(id)
-                    .thenApply(deleted -> {
-                        if (deleted) {
-                            logger.info("✅ Utilisateur supprimé: {}", id);
-                        } else {
-                            logger.warn("⚠️ Utilisateur non trouvé pour suppression: {}", id);
-                        }
-                        return deleted;
-                    })
-                    .join();
-            } catch (Exception e) {
-                logger.error("❌ Erreur lors de la suppression de l'utilisateur {}: {}", id, e.getMessage());
-                throw e;
+        try {
+            if (id == null || id.trim().isEmpty()) {
+                return CompletableFuture.failedFuture(new IllegalArgumentException("L'ID est requis"));
             }
-        });
+            
+            return userRepository.deleteById(id)
+                .thenApply(deleted -> {
+                    if (deleted) {
+                        logger.info("✅ Utilisateur supprimé: {}", id);
+                    } else {
+                        logger.warn("⚠️ Utilisateur non trouvé pour suppression: {}", id);
+                    }
+                    return deleted;
+                });
+        } catch (Exception e) {
+            logger.error("❌ Erreur lors de la suppression de l'utilisateur {}: {}", id, e.getMessage());
+            return CompletableFuture.failedFuture(e);
+        }
     }
     
     /**
@@ -299,23 +283,20 @@ public class UserService {
     public CompletableFuture<List<User>> searchUsersByName(String name) {
         logger.info("🔍 Recherche d'utilisateurs par nom: {}", name);
         
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                if (name == null || name.trim().isEmpty()) {
-                    throw new IllegalArgumentException("Le nom de recherche est requis");
-                }
-                
-                return userRepository.findByNameContaining(name)
-                    .thenApply(users -> {
-                        logger.info("✅ {} utilisateurs trouvés pour '{}'", users.size(), name);
-                        return users;
-                    })
-                    .join();
-            } catch (Exception e) {
-                logger.error("❌ Erreur lors de la recherche d'utilisateurs '{}': {}", name, e.getMessage());
-                throw e;
+        try {
+            if (name == null || name.trim().isEmpty()) {
+                return CompletableFuture.failedFuture(new IllegalArgumentException("Le nom de recherche est requis"));
             }
-        });
+            
+            return userRepository.findByNameContaining(name)
+                .thenApply(users -> {
+                    logger.info("✅ {} utilisateurs trouvés pour '{}'", users.size(), name);
+                    return users;
+                });
+        } catch (Exception e) {
+            logger.error("❌ Erreur lors de la recherche d'utilisateurs '{}': {}", name, e.getMessage());
+            return CompletableFuture.failedFuture(e);
+        }
     }
     
     /**

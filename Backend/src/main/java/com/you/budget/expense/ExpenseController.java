@@ -76,6 +76,13 @@ public class ExpenseController {
         String location = body.getString("location");
         String notes = body.getString("notes");
 
+        // Validation supplémentaire des paramètres
+        if (budgetId == null || budgetId.trim().isEmpty()) {
+            HttpController.sendBadRequest(ctx, "budgetId est requis");
+            HttpController.logResponse(ctx, 400);
+            return;
+        }
+
         logger.info("💰 Création d'une nouvelle dépense: {}€ dans {} pour l'utilisateur {}", amount, category, userId);
 
         // Utiliser le ExpenseService pour créer la dépense

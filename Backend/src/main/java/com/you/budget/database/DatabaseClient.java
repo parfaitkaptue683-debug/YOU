@@ -49,7 +49,6 @@ public class DatabaseClient {
             // Configuration du pool de connexions
             PoolOptions poolOptions = new PoolOptions()
                 .setMaxSize(config.getInteger("DB_MAX_POOL_SIZE", 10))
-                .setMinSize(config.getInteger("DB_MIN_POOL_SIZE", 2))
                 .setMaxWaitQueueSize(config.getInteger("DB_MAX_WAIT_QUEUE_SIZE", 20))
                 .setName("budget-app-pool");
 
@@ -61,10 +60,9 @@ public class DatabaseClient {
                     .setPassword(config.getString("DB_PASSWORD")),
                 poolOptions);
 
-            logger.info("✅ Pool JDBC PostgreSQL initialisé avec succès!");
-            logger.info("📊 Configuration du pool:");
+            logger.info("Pool JDBC PostgreSQL initialise avec succes!");
+            logger.info("Configuration du pool:");
             logger.info("   - Taille max: {}", poolOptions.getMaxSize());
-            logger.info("   - Taille min: {}", poolOptions.getMinSize());
             logger.info("   - Queue max: {}", poolOptions.getMaxWaitQueueSize());
 
             // Tester la connexion

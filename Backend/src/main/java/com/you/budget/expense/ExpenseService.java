@@ -72,6 +72,14 @@ public class ExpenseService {
 
                 Budget budget = budgetOpt.get();
                 
+                // Vérifier que le budgetId correspond au budget actuel
+                if (!budget.getId().equals(budgetId)) {
+                    logger.warn("⚠️ Le budgetId {} ne correspond pas au budget actuel {} de l'utilisateur {}", 
+                               budgetId, budget.getId(), userId);
+                    return CompletableFuture.failedFuture(
+                        new IllegalArgumentException("Le budgetId ne correspond pas au budget actuel de l'utilisateur."));
+                }
+                
                 // Vérifier si l'ajout de cette dépense dépassera le budget
                 BigDecimal currentSpent = getCurrentSpentForCategory(budget, category);
                 BigDecimal newTotal = currentSpent.add(amount);
@@ -89,8 +97,8 @@ public class ExpenseService {
                 logger.info("✅ Dépense validée, sauvegarde en cours...");
                 return expenseRepository.save(expense)
                     .thenCompose(savedExpense -> {
-                        // Mettre à jour le budget avec la nouvelle dépense
-                        return budgetService.addExpense(budgetId, category, amount)
+                        // Mettre à jour le budget avec la nouvelle dépense (utiliser le budget récupéré)
+                        return budgetService.addExpense(budget.getId(), category, amount)
                             .thenApply(updatedBudgetOpt -> {
                                 if (updatedBudgetOpt.isPresent()) {
                                     logger.info("✅ Budget mis à jour avec la nouvelle dépense");

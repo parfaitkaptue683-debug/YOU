@@ -320,8 +320,15 @@ public class ExpenseRepository {
             .onComplete(result -> {
                 if (result.succeeded()) {
                     RowSet<Row> rows = result.result();
-                    BigDecimal total = new BigDecimal(rows.iterator().next().getString("total"));
-                    future.complete(total);
+                    if (rows.size() > 0) {
+                        String totalStr = rows.iterator().next().getString("total");
+                        // Vérifier que totalStr n'est pas null avant de créer BigDecimal
+                        BigDecimal total = (totalStr != null && !totalStr.isEmpty()) ? 
+                            new BigDecimal(totalStr) : BigDecimal.ZERO;
+                        future.complete(total);
+                    } else {
+                        future.complete(BigDecimal.ZERO);
+                    }
                 } else {
                     future.completeExceptionally(result.cause());
                 }

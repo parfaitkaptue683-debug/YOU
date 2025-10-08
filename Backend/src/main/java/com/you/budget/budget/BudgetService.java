@@ -52,7 +52,9 @@ public class BudgetService {
         }
 
         // Vérifier s'il existe déjà un budget pour ce mois
-        return budgetRepository.findByUserIdAndMonth(userId, budget.getMonthYear())
+        // Utiliser le premier jour du mois pour la comparaison
+        LocalDateTime firstDayOfMonth = budget.getMonthYear().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+        return budgetRepository.findByUserIdAndMonth(userId, firstDayOfMonth)
             .thenCompose(existingBudgetOpt -> {
                 if (existingBudgetOpt.isPresent()) {
                     logger.warn("⚠️ Budget existant trouvé pour {} en {}", userId, budget.getMonthYear());
@@ -166,7 +168,8 @@ public class BudgetService {
     public CompletableFuture<Optional<Budget>> getCurrentBudget(String userId) {
         logger.debug("📋 Récupération du budget actuel pour: {}", userId);
         
-        LocalDateTime currentMonth = LocalDateTime.now();
+        // Utiliser le premier jour du mois actuel pour la comparaison
+        LocalDateTime currentMonth = LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
         return budgetRepository.findByUserIdAndMonth(userId, currentMonth);
     }
 
