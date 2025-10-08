@@ -216,30 +216,6 @@ public class BudgetRepository {
         return future;
     }
     
-    /**
-     * Trouve les budgets par catégorie
-     * @param category La catégorie à rechercher
-     * @return CompletableFuture<List<Budget>> Liste des budgets de la catégorie
-     */
-    public CompletableFuture<List<Budget>> findByCategory(String category) {
-        CompletableFuture<List<Budget>> future = new CompletableFuture<>();
-        
-        jdbcPool.preparedQuery("SELECT * FROM budgets WHERE category = $1 ORDER BY created_at DESC")
-            .execute(Tuple.of(category))
-            .onComplete(result -> {
-                if (result.succeeded()) {
-                    List<Budget> budgets = new ArrayList<>();
-                    for (Row row : result.result()) {
-                        budgets.add(mapRowToBudget(row));
-                    }
-                    future.complete(budgets);
-                } else {
-                    future.completeExceptionally(result.cause());
-                }
-            });
-        
-        return future;
-    }
     
     /**
      * Récupère tous les budgets
@@ -292,66 +268,7 @@ public class BudgetRepository {
         return future;
     }
     
-    /**
-     * Met à jour le montant dépensé d'un budget
-     * @param budgetId L'ID du budget
-     * @param spentAmount Le nouveau montant dépensé
-     * @return CompletableFuture<Optional<Budget>> Le budget mis à jour ou vide si non trouvé
-     */
-    public CompletableFuture<Optional<Budget>> updateSpentAmount(String budgetId, BigDecimal spentAmount) {
-        CompletableFuture<Optional<Budget>> future = new CompletableFuture<>();
-        
-        jdbcPool.preparedQuery("""
-            UPDATE budgets 
-            SET spent_amount = $2, remaining_amount = total_amount - $2, updated_at = NOW() 
-            WHERE id = $1
-            """)
-            .execute(Tuple.of(budgetId, spentAmount.toString()))
-            .onComplete(result -> {
-                if (result.succeeded()) {
-                    if (result.result().rowCount() > 0) {
-                        // Récupérer le budget mis à jour
-                        findById(budgetId)
-                            .thenAccept(budgetOpt -> future.complete(budgetOpt))
-                            .exceptionally(throwable -> {
-                                future.completeExceptionally(throwable);
-                                return null;
-                            });
-                    } else {
-                        future.complete(Optional.empty());
-                    }
-                } else {
-                    future.completeExceptionally(result.cause());
-                }
-            });
-        
-        return future;
-    }
     
-    /**
-     * Recherche des budgets par nom (recherche partielle)
-     * @param name Le nom à rechercher
-     * @return CompletableFuture<List<Budget>> Liste des budgets correspondants
-     */
-    public CompletableFuture<List<Budget>> findByNameContaining(String name) {
-        CompletableFuture<List<Budget>> future = new CompletableFuture<>();
-        
-        jdbcPool.preparedQuery("SELECT * FROM budgets WHERE LOWER(name) LIKE LOWER($1) ORDER BY name")
-            .execute(Tuple.of("%" + name + "%"))
-            .onComplete(result -> {
-                if (result.succeeded()) {
-                    List<Budget> budgets = new ArrayList<>();
-                    for (Row row : result.result()) {
-                        budgets.add(mapRowToBudget(row));
-                    }
-                    future.complete(budgets);
-                } else {
-                    future.completeExceptionally(result.cause());
-                }
-            });
-        
-        return future;
-    }
     
     /**
      * Compte le nombre total de budgets
@@ -384,14 +301,14 @@ public class BudgetRepository {
         Budget budget = new Budget();
         budget.setId(row.getString("id"));
         budget.setUserId(row.getString("user_id"));
-        budget.setName(row.getString("name"));
-        budget.setDescription(row.getString("description"));
-        budget.setTotalAmount(new BigDecimal(row.getString("total_amount")));
-        budget.setSpentAmount(new BigDecimal(row.getString("spent_amount")));
-        budget.setRemainingAmount(new BigDecimal(row.getString("remaining_amount")));
-        budget.setCategory(row.getString("category"));
-        budget.setStartDate(row.getLocalDateTime("start_date"));
-        budget.setEndDate(row.getLocalDateTime("end_date"));
+        budget.setTotalIncome(new BigDecimal(row.getString("total_income")));
+        budget.setLoisirsBudget(new BigDecimal(row.getString("loisirs_budget")));
+        budget.setEssentielsBudget(new BigDecimal(row.getString("essentiels_budget")));
+        budget.setEpargneBudget(new BigDecimal(row.getString("epargne_budget")));
+        budget.setLoisirsSpent(new BigDecimal(row.getString("loisirs_spent")));
+        budget.setEssentielsSpent(new BigDecimal(row.getString("essentiels_spent")));
+        budget.setEpargneSpent(new BigDecimal(row.getString("epargne_spent")));
+        budget.setMonthYear(row.getLocalDateTime("month_year"));
         budget.setCreatedAt(row.getLocalDateTime("created_at"));
         budget.setUpdatedAt(row.getLocalDateTime("updated_at"));
         return budget;
