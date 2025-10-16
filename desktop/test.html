@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API Backend</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-box {
+            background: white;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        pre {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test API Backend</h1>
+    
+    <div class="test-box">
+        <h2>1. Test de connexion basique</h2>
+        <button onclick="testRoot()">Tester /</button>
+        <button onclick="testHealth()">Tester /health</button>
+        <button onclick="testHealthDB()">Tester /health/db</button>
+        <div id="result1"></div>
+    </div>
+
+    <div class="test-box">
+        <h2>2. Test des routes utilisateur</h2>
+        <button onclick="testGetUsers()">GET /api/users</button>
+        <button onclick="testRegister()">POST /api/users/register</button>
+        <div id="result2"></div>
+    </div>
+
+    <div class="test-box">
+        <h2>3. Console de logs</h2>
+        <div id="console"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8080';
+        
+        function log(message, type = 'info') {
+            const console = document.getElementById('console');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : '';
+            console.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            console.scrollTop = console.scrollHeight;
+        }
+
+        async function testRoot() {
+            const result = document.getElementById('result1');
+            result.innerHTML = '<p>⏳ Test en cours...</p>';
+            log('Test de la route racine /');
+            
+            try {
+                const response = await fetch(`${API_URL}/`);
+                const data = await response.json();
+                result.innerHTML = `<p class="success">✅ Succès!</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                log('✅ Route / OK', 'success');
+            } catch (error) {
+                result.innerHTML = `<p class="error">❌ Erreur: ${error.message}</p>`;
+                log(`❌ Erreur route /: ${error.message}`, 'error');
+            }
+        }
+
+        async function testHealth() {
+            const result = document.getElementById('result1');
+            result.innerHTML = '<p>⏳ Test en cours...</p>';
+            log('Test de la route /health');
+            
+            try {
+                const response = await fetch(`${API_URL}/health`);
+                const data = await response.json();
+                result.innerHTML = `<p class="success">✅ Succès!</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                log('✅ Route /health OK', 'success');
+            } catch (error) {
+                result.innerHTML = `<p class="error">❌ Erreur: ${error.message}</p>`;
+                log(`❌ Erreur route /health: ${error.message}`, 'error');
+            }
+        }
+
+        async function testHealthDB() {
+            const result = document.getElementById('result1');
+            result.innerHTML = '<p>⏳ Test en cours...</p>';
+            log('Test de la route /health/db');
+            
+            try {
+                const response = await fetch(`${API_URL}/health/db`);
+                const data = await response.json();
+                result.innerHTML = `<p class="success">✅ Succès!</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                log('✅ Route /health/db OK', 'success');
+            } catch (error) {
+                result.innerHTML = `<p class="error">❌ Erreur: ${error.message}</p>`;
+                log(`❌ Erreur route /health/db: ${error.message}`, 'error');
+            }
+        }
+
+        async function testGetUsers() {
+            const result = document.getElementById('result2');
+            result.innerHTML = '<p>⏳ Test en cours...</p>';
+            log('Test GET /api/users');
+            
+            try {
+                const response = await fetch(`${API_URL}/api/users`);
+                const data = await response.json();
+                result.innerHTML = `<p class="success">✅ Succès!</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                log('✅ GET /api/users OK', 'success');
+            } catch (error) {
+                result.innerHTML = `<p class="error">❌ Erreur: ${error.message}</p>`;
+                log(`❌ Erreur GET /api/users: ${error.message}`, 'error');
+            }
+        }
+
+        async function testRegister() {
+            const result = document.getElementById('result2');
+            result.innerHTML = '<p>⏳ Test en cours...</p>';
+            log('Test POST /api/users/register');
+            
+            const testUser = {
+                email: `test${Date.now()}@example.com`,
+                name: 'Test User',
+                password: 'password123'
+            };
+            
+            try {
+                const response = await fetch(`${API_URL}/api/users/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testUser)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    result.innerHTML = `<p class="success">✅ Inscription réussie!</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                    log('✅ POST /api/users/register OK', 'success');
+                } else {
+                    result.innerHTML = `<p class="error">❌ Erreur ${response.status}</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                    log(`❌ Erreur ${response.status}: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                result.innerHTML = `<p class="error">❌ Erreur: ${error.message}</p>`;
+                log(`❌ Erreur POST /api/users/register: ${error.message}`, 'error');
+            }
+        }
+
+        // Test automatique au chargement
+        window.addEventListener('DOMContentLoaded', () => {
+            log('🚀 Page de test chargée');
+            log(`📡 API URL: ${API_URL}`);
+        });
+    </script>
+</body>
+</html>
