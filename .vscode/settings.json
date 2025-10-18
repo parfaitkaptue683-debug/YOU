@@ -1,3 +1,15 @@
 {
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.configuration.runtimes": [
+        {
+            "name": "JavaSE-21",
+            "path": "${env:JAVA_HOME}",
+            "default": true
+        }
+    ],
+    "java.compile.nullAnalysis.mode": "automatic",
+    "java.project.sourcePaths": ["Backend/src/main/java"],
+    "java.project.outputPath": "Backend/target/classes",
+    "java.project.referencedLibraries": ["Backend/lib/**/*.jar"],
+    "java.configuration.checkProjectSettingsExclusions": false
 }
