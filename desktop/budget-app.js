@@ -597,6 +597,21 @@ class BudgetApp {
     }
 
     setupEventListeners() {
+        document.querySelectorAll('.main-menu .menu-item a').forEach(link => {
+            link.addEventListener('click', (event) => {
+                event.preventDefault();
+                const item = link.closest('.menu-item');
+
+                document.querySelectorAll('.main-menu .menu-item').forEach(menuItem => {
+                    menuItem.classList.remove('active');
+                });
+
+                if (item) {
+                    item.classList.add('active');
+                }
+            });
+        });
+
         // Clic sur les cartes pour plus de détails
         document.querySelectorAll('.card').forEach(card => {
             card.addEventListener('click', (e) => {
